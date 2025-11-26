@@ -1,0 +1,8 @@
+Flask==3.0.0
+Flask-CORS==4.0.0
+matplotlib==3.8.2
+reportlab==4.0.7
+Werkzeug==3.0.1
+seaborn==0.12.2
+gunicorn==21.2.0
+python-dotenv==1.0.0

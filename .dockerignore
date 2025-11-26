@@ -1,0 +1,62 @@
+# Python
+
+**pycache**/
+_.py[cod]
+_$py.class
+\*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Flask
+
+instance/
+.webassets-cache
+
+# Environment variables
+
+.env
+.env.local
+
+# Logs
+
+logs/
+\*.log
+
+# Output files
+
+output/
+temp/
+_.pdf
+_.png
+
+# IDE
+
+.vscode/
+.idea/
+_.swp
+_.swo
+\*~
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+# Docker
+
+.dockerignore
+
+# Testing
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+
+dist/
+build/
+\*.egg-info/
