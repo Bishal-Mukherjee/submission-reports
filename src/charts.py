@@ -4,10 +4,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
 import os
+import gc
 
 # Set style
 sns.set_style("whitegrid")
-plt.rcParams['figure.figsize'] = (10, 7)  # Increased height from 6 to 7
+plt.rcParams['figure.figsize'] = (8, 5)  # Reduced for memory optimization
+plt.rcParams['figure.max_open_warning'] = 0
+plt.rcParams['agg.path.chunksize'] = 10000
 
 def generate_charts_for_sightings(observations, output_folder):
     """Generate all charts for sightings and return list of file paths with summary data"""
@@ -27,7 +30,7 @@ def generate_charts_for_sightings(observations, output_folder):
         if blocks:  # Only create chart if data exists
             block_counts = Counter(blocks)
             
-            fig, ax = plt.subplots(figsize=(10, 7))
+            fig, ax = plt.subplots(figsize=(8, 5))
             bars = ax.bar(block_counts.keys(), block_counts.values(), width=0.4)
             ax.set_xlabel('Block', fontsize=12, labelpad=15)
             ax.set_ylabel('Number of Sightings', fontsize=12, labelpad=15)
@@ -36,8 +39,9 @@ def generate_charts_for_sightings(observations, output_folder):
             plt.tight_layout()
             
             chart_path = os.path.join(output_folder, 'chart_blocks.png')
-            plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-            plt.close()
+            plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+            plt.close(fig)
+            gc.collect()
             chart_files.append(chart_path)
             summary_data.append({
                 'title': 'Block Summary',
@@ -52,7 +56,7 @@ def generate_charts_for_sightings(observations, output_folder):
     if districts:  # Only create chart if data exists
         district_counts = Counter(districts)
         
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(district_counts.keys(), district_counts.values(), width=0.4, color='steelblue')
         ax.set_xlabel('District', fontsize=12, labelpad=15)
         ax.set_ylabel('Number of Sightings', fontsize=12, labelpad=15)
@@ -61,8 +65,9 @@ def generate_charts_for_sightings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_districts.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'District Summary',
@@ -74,7 +79,7 @@ def generate_charts_for_sightings(observations, output_folder):
     if water_bodies:  # Only create chart if data exists
         water_body_counts = Counter(water_bodies)
         
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(water_body_counts.keys(), water_body_counts.values(), width=0.4, color='teal')
         ax.set_xlabel('Water Body Type', fontsize=12, labelpad=15)
         ax.set_ylabel('Number of Sightings', fontsize=12, labelpad=15)
@@ -83,8 +88,9 @@ def generate_charts_for_sightings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_waterbodies.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Water Body Type Summary',
@@ -96,7 +102,7 @@ def generate_charts_for_sightings(observations, output_folder):
     if weather:  # Only create chart if data exists
         weather_counts = Counter(weather)
         
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(weather_counts.keys(), weather_counts.values(), width=0.4, color='coral')
         ax.set_xlabel('Weather Condition', fontsize=12, labelpad=15)
         ax.set_ylabel('Number of Sightings', fontsize=12, labelpad=15)
@@ -105,8 +111,9 @@ def generate_charts_for_sightings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_weather.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Weather Condition Summary',
@@ -123,7 +130,7 @@ def generate_charts_for_sightings(observations, output_folder):
     if all_threats:  # Only create chart if data exists
         threat_counts = Counter(all_threats)
         
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(threat_counts.keys(), threat_counts.values(), width=0.4, color='indianred')
         ax.set_xlabel('Threat Type', fontsize=12, labelpad=15)
         ax.set_ylabel('Frequency', fontsize=12, labelpad=15)
@@ -132,8 +139,9 @@ def generate_charts_for_sightings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_threats.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Threats Summary',
@@ -150,7 +158,7 @@ def generate_charts_for_sightings(observations, output_folder):
     
     # Only create chart if there's data
     if age_groups['Adult'] > 0 or age_groups['Sub-Adult'] > 0:
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(age_groups.keys(), age_groups.values(), width=0.4, color='mediumseagreen')
         ax.set_xlabel('Age Group', fontsize=12, labelpad=15)
         ax.set_ylabel('Count', fontsize=12, labelpad=15)
@@ -158,8 +166,9 @@ def generate_charts_for_sightings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_agegroups.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Age Group Summary',
@@ -187,7 +196,7 @@ def generate_charts_for_reportings(observations, output_folder):
         if blocks:
             block_counts = Counter(blocks)
             
-            fig, ax = plt.subplots(figsize=(10, 7))
+            fig, ax = plt.subplots(figsize=(8, 5))
             bars = ax.bar(block_counts.keys(), block_counts.values(), width=0.4)
             ax.set_xlabel('Block', fontsize=12, labelpad=15)
             ax.set_ylabel('Number of Reportings', fontsize=12, labelpad=15)
@@ -196,8 +205,9 @@ def generate_charts_for_reportings(observations, output_folder):
             plt.tight_layout()
             
             chart_path = os.path.join(output_folder, 'chart_blocks.png')
-            plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-            plt.close()
+            plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+            plt.close(fig)
+            gc.collect()
             chart_files.append(chart_path)
             summary_data.append({
                 'title': 'Block Summary',
@@ -212,7 +222,7 @@ def generate_charts_for_reportings(observations, output_folder):
     if districts:
         district_counts = Counter(districts)
         
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(district_counts.keys(), district_counts.values(), width=0.4, color='steelblue')
         ax.set_xlabel('District', fontsize=12, labelpad=15)
         ax.set_ylabel('Number of Reportings', fontsize=12, labelpad=15)
@@ -221,8 +231,9 @@ def generate_charts_for_reportings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_districts.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'District Summary',
@@ -238,7 +249,7 @@ def generate_charts_for_reportings(observations, output_folder):
             species_counts[species_type] += 1
     
     if species_counts:
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(species_counts.keys(), species_counts.values(), width=0.4, color='teal')
         ax.set_xlabel('Species', fontsize=12, labelpad=15)
         ax.set_ylabel('Number of Reportings', fontsize=12, labelpad=15)
@@ -247,8 +258,9 @@ def generate_charts_for_reportings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_species.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Species Summary',
@@ -269,7 +281,7 @@ def generate_charts_for_reportings(observations, output_folder):
                     status_counts['Dead'] += age_data.get('dead', 0)
     
     if any(status_counts.values()):
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(status_counts.keys(), status_counts.values(), width=0.4, color='coral')
         ax.set_xlabel('Status', fontsize=12, labelpad=15)
         ax.set_ylabel('Count', fontsize=12, labelpad=15)
@@ -277,8 +289,9 @@ def generate_charts_for_reportings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_status.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Status Summary',
@@ -301,7 +314,7 @@ def generate_charts_for_reportings(observations, output_folder):
     if all_causes:
         cause_counts = Counter(all_causes)
         
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(cause_counts.keys(), cause_counts.values(), width=0.4, color='indianred')
         ax.set_xlabel('Cause', fontsize=12, labelpad=15)
         ax.set_ylabel('Frequency', fontsize=12, labelpad=15)
@@ -310,8 +323,9 @@ def generate_charts_for_reportings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_causes.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Causes Summary',
@@ -340,7 +354,7 @@ def generate_charts_for_reportings(observations, output_folder):
                 age_groups['Sub-Adult'] += sub_adult_data.get('stranded', 0) + sub_adult_data.get('injured', 0) + sub_adult_data.get('dead', 0)
     
     if any(age_groups.values()):
-        fig, ax = plt.subplots(figsize=(10, 7))
+        fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(age_groups.keys(), age_groups.values(), width=0.4, color='mediumseagreen')
         ax.set_xlabel('Age Group', fontsize=12, labelpad=15)
         ax.set_ylabel('Count', fontsize=12, labelpad=15)
@@ -349,8 +363,9 @@ def generate_charts_for_reportings(observations, output_folder):
         plt.tight_layout()
         
         chart_path = os.path.join(output_folder, 'chart_agegroups.png')
-        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+        plt.close(fig)
+        gc.collect()
         chart_files.append(chart_path)
         summary_data.append({
             'title': 'Age Group Summary',
