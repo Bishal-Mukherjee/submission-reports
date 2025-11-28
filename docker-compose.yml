@@ -20,6 +20,13 @@ services:
     restart: unless-stopped
     networks:
       - flask-network
+    # Add memory limits
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
       interval: 30s
