@@ -69,12 +69,12 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
     story.append(Spacer(1, 0.8*inch))
     
     # Date - centered
-    date_info = Paragraph(f"<b>Report Generated</b><br/>{datetime.now().strftime('%B %d, %Y')}<br/>{datetime.now().strftime('%I:%M %p')}", info_style)
+    date_info = Paragraph(f"<b>Report Generated</b><br/><br/>{datetime.now().strftime('%d/%m/%Y')}<br/>", info_style)
     story.append(date_info)
     story.append(Spacer(1, 0.5*inch))
     
     # Dataset info - centered
-    dataset_info = Paragraph(f"<b>Total Observations</b><br/>{len(observations)} records", info_style)
+    dataset_info = Paragraph(f"<b>Total Observations</b><br/><br/>{len(observations)} records", info_style)
     story.append(dataset_info)
     
     # End of title page
