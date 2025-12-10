@@ -3,6 +3,7 @@ matplotlib.use('Agg')  # Use non-GUI backend - must be before pyplot import
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
+from datetime import datetime
 import os
 import gc
 
@@ -24,7 +25,52 @@ def generate_charts_for_sightings(observations, output_folder):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder, exist_ok=True)
     
-    # 1. Frequency of sightings by block
+    # 1. Monthly frequency of sightings
+    try:
+        monthly_counts = Counter()
+        for obs in observations:
+            observed_at = obs.get('observedAt')
+            if observed_at:
+                try:
+                    # Parse ISO format timestamp
+                    dt = datetime.fromisoformat(observed_at.replace('Z', '+00:00'))
+                    month_key = dt.strftime('%Y-%m')  # Format as YYYY-MM
+                    monthly_counts[month_key] += 1
+                except (ValueError, AttributeError):
+                    continue
+        
+        if monthly_counts:
+            # Sort by month
+            sorted_months = sorted(monthly_counts.items())
+            # Convert YYYY-MM to month names
+            month_labels = []
+            for month_str, _ in sorted_months:
+                dt = datetime.strptime(month_str, '%Y-%m')
+                month_labels.append(dt.strftime('%B %Y'))  # e.g., 'January 2025'
+            counts = [item[1] for item in sorted_months]
+            
+            fig, ax = plt.subplots(figsize=(10, 5))
+            bars = ax.bar(month_labels, counts, width=0.6, color='skyblue')
+            ax.set_xlabel('Month', fontsize=12, labelpad=15)
+            ax.set_ylabel('Number of Sightings', fontsize=12, labelpad=15)
+            ax.set_title('Monthly Sightings Frequency', fontsize=14, fontweight='bold', pad=25)
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            
+            chart_path = os.path.join(output_folder, 'chart_monthly_frequency.png')
+            plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+            plt.close(fig)
+            gc.collect()
+            chart_files.append(chart_path)
+            summary_data.append({
+                'title': 'Monthly Frequency Summary',
+                'data': sorted_months
+            })
+    except Exception as e:
+        plt.close('all')
+        print(f"Error generating monthly frequency chart: {str(e)}")
+    
+    # 2. Frequency of sightings by block
     try:
         blocks = [obs.get('block') for obs in observations if obs.get('block')]
         if blocks:  # Only create chart if data exists
@@ -51,7 +97,7 @@ def generate_charts_for_sightings(observations, output_folder):
         plt.close('all')
         print(f"Error generating block chart: {str(e)}")
     
-    # 2. Frequency of sightings by district
+    # 3. Frequency of sightings by district
     districts = [obs.get('district') for obs in observations if obs.get('district')]
     if districts:  # Only create chart if data exists
         district_counts = Counter(districts)
@@ -74,8 +120,16 @@ def generate_charts_for_sightings(observations, output_folder):
             'data': sorted(district_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 3. Sightings by water body type
-    water_bodies = [obs.get('waterBody') for obs in observations if obs.get('waterBody')]
+    # 4. Sightings by water body type
+    water_bodies = []
+    for obs in observations:
+        water_body_list = obs.get('waterBody', [])
+        if water_body_list:
+            if isinstance(water_body_list, list):
+                water_bodies.extend(water_body_list)
+            else:
+                # Handle legacy single string format
+                water_bodies.append(water_body_list)
     if water_bodies:  # Only create chart if data exists
         water_body_counts = Counter(water_bodies)
         
@@ -97,8 +151,16 @@ def generate_charts_for_sightings(observations, output_folder):
             'data': sorted(water_body_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 4. Sightings by weather condition
-    weather = [obs.get('weatherCondition') for obs in observations if obs.get('weatherCondition')]
+    # 5. Sightings by weather condition
+    weather = []
+    for obs in observations:
+        weather_list = obs.get('weatherCondition', [])
+        if weather_list:
+            if isinstance(weather_list, list):
+                weather.extend(weather_list)
+            else:
+                # Handle legacy single string format
+                weather.append(weather_list)
     if weather:  # Only create chart if data exists
         weather_counts = Counter(weather)
         
@@ -120,7 +182,7 @@ def generate_charts_for_sightings(observations, output_folder):
             'data': sorted(weather_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 5. Distribution of threats
+    # 6. Distribution of threats
     all_threats = []
     for obs in observations:
         threats = obs.get('threats', [])
@@ -148,7 +210,7 @@ def generate_charts_for_sightings(observations, output_folder):
             'data': sorted(threat_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 6. Age group distribution
+    # 7. Age group distribution
     age_groups = {'Adult': 0, 'Sub-Adult': 0}
     for obs in observations:
         species = obs.get('species', [])
@@ -190,7 +252,52 @@ def generate_charts_for_reportings(observations, output_folder):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder, exist_ok=True)
     
-    # 1. Frequency of reportings by block
+    # 1. Monthly frequency of reportings
+    try:
+        monthly_counts = Counter()
+        for obs in observations:
+            observed_at = obs.get('observedAt')
+            if observed_at:
+                try:
+                    # Parse ISO format timestamp
+                    dt = datetime.fromisoformat(observed_at.replace('Z', '+00:00'))
+                    month_key = dt.strftime('%Y-%m')  # Format as YYYY-MM
+                    monthly_counts[month_key] += 1
+                except (ValueError, AttributeError):
+                    continue
+        
+        if monthly_counts:
+            # Sort by month
+            sorted_months = sorted(monthly_counts.items())
+            # Convert YYYY-MM to month names
+            month_labels = []
+            for month_str, _ in sorted_months:
+                dt = datetime.strptime(month_str, '%Y-%m')
+                month_labels.append(dt.strftime('%B %Y'))  # e.g., 'January 2025'
+            counts = [item[1] for item in sorted_months]
+            
+            fig, ax = plt.subplots(figsize=(10, 5))
+            bars = ax.bar(month_labels, counts, width=0.6, color='skyblue')
+            ax.set_xlabel('Month', fontsize=12, labelpad=15)
+            ax.set_ylabel('Number of Reportings', fontsize=12, labelpad=15)
+            ax.set_title('Monthly Reportings Frequency', fontsize=14, fontweight='bold', pad=25)
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            
+            chart_path = os.path.join(output_folder, 'chart_monthly_frequency.png')
+            plt.savefig(chart_path, dpi=100, bbox_inches='tight')
+            plt.close(fig)
+            gc.collect()
+            chart_files.append(chart_path)
+            summary_data.append({
+                'title': 'Monthly Frequency Summary',
+                'data': sorted_months
+            })
+    except Exception as e:
+        plt.close('all')
+        print(f"Error generating monthly frequency chart: {str(e)}")
+    
+    # 2. Frequency of reportings by block
     try:
         blocks = [obs.get('block') for obs in observations if obs.get('block')]
         if blocks:
@@ -217,7 +324,7 @@ def generate_charts_for_reportings(observations, output_folder):
         plt.close('all')
         print(f"Error generating block chart: {str(e)}")
     
-    # 2. Frequency of reportings by district
+    # 3. Frequency of reportings by district
     districts = [obs.get('district') for obs in observations if obs.get('district')]
     if districts:
         district_counts = Counter(districts)
@@ -240,7 +347,7 @@ def generate_charts_for_reportings(observations, output_folder):
             'data': sorted(district_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 3. Species distribution
+    # 4. Species distribution
     species_counts = Counter()
     for obs in observations:
         species_list = obs.get('species', [])
@@ -267,7 +374,7 @@ def generate_charts_for_reportings(observations, output_folder):
             'data': sorted(species_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 4. Status distribution (stranded, injured, dead)
+    # 5. Status distribution (stranded, injured, dead)
     status_counts = {'Stranded': 0, 'Injured': 0, 'Dead': 0}
     for obs in observations:
         species_list = obs.get('species', [])
@@ -298,7 +405,7 @@ def generate_charts_for_reportings(observations, output_folder):
             'data': sorted(status_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 5. Causes distribution
+    # 6. Causes distribution
     all_causes = []
     for obs in observations:
         causes_list = obs.get('causes', [])
@@ -332,7 +439,7 @@ def generate_charts_for_reportings(observations, output_folder):
             'data': sorted(cause_counts.items(), key=lambda x: x[1], reverse=True)
         })
     
-    # 6. Age group distribution
+    # 7. Age group distribution
     age_groups = {'Adult': 0, 'Adult Male': 0, 'Adult Female': 0, 'Sub-Adult': 0}
     for obs in observations:
         species_list = obs.get('species', [])
