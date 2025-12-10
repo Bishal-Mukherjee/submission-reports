@@ -121,7 +121,15 @@ def generate_charts_for_sightings(observations, output_folder):
         })
     
     # 4. Sightings by water body type
-    water_bodies = [obs.get('waterBody') for obs in observations if obs.get('waterBody')]
+    water_bodies = []
+    for obs in observations:
+        water_body_list = obs.get('waterBody', [])
+        if water_body_list:
+            if isinstance(water_body_list, list):
+                water_bodies.extend(water_body_list)
+            else:
+                # Handle legacy single string format
+                water_bodies.append(water_body_list)
     if water_bodies:  # Only create chart if data exists
         water_body_counts = Counter(water_bodies)
         
@@ -144,7 +152,15 @@ def generate_charts_for_sightings(observations, output_folder):
         })
     
     # 5. Sightings by weather condition
-    weather = [obs.get('weatherCondition') for obs in observations if obs.get('weatherCondition')]
+    weather = []
+    for obs in observations:
+        weather_list = obs.get('weatherCondition', [])
+        if weather_list:
+            if isinstance(weather_list, list):
+                weather.extend(weather_list)
+            else:
+                # Handle legacy single string format
+                weather.append(weather_list)
     if weather:  # Only create chart if data exists
         weather_counts = Counter(weather)
         
