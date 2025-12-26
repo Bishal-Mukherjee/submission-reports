@@ -211,15 +211,16 @@ def generate_charts_for_sightings(observations, output_folder):
         })
     
     # 7. Age group distribution
-    age_groups = {'Adult': 0, 'Sub-Adult': 0}
+    age_groups = {'Adult': 0, 'Sub-Adult': 0, 'Unidentified': 0}
     for obs in observations:
         species = obs.get('species', [])
         for sp in species:
             age_groups['Adult'] += sp.get('adult', 0) + sp.get('adultMale', 0) + sp.get('adultFemale', 0)
             age_groups['Sub-Adult'] += sp.get('subAdult', 0)
+            age_groups['Unidentified'] += sp.get('unidentified', 0)
     
     # Only create chart if there's data
-    if age_groups['Adult'] > 0 or age_groups['Sub-Adult'] > 0:
+    if age_groups['Adult'] > 0 or age_groups['Sub-Adult'] > 0 or age_groups['Unidentified'] > 0:
         fig, ax = plt.subplots(figsize=(8, 5))
         bars = ax.bar(age_groups.keys(), age_groups.values(), width=0.4, color='mediumseagreen')
         ax.set_xlabel('Age Group', fontsize=12, labelpad=15)
