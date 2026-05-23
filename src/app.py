@@ -9,8 +9,10 @@ from logging.handlers import RotatingFileHandler
 from src.charts import generate_charts_for_sightings, generate_charts_for_reportings, generate_charts
 from src.pdf_generator import create_pdf_report
 from src.config import config
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
 # Enable CORS
 CORS(app, resources={
