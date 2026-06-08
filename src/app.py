@@ -6,9 +6,9 @@ import uuid
 import logging
 import shutil
 from logging.handlers import RotatingFileHandler
-from src.charts import generate_charts_for_sightings, generate_charts_for_reportings, generate_charts
-from src.pdf_generator import create_pdf_report
-from src.config import config
+from charts import generate_charts_for_sightings, generate_charts_for_reportings, generate_charts
+from pdf_generator import create_pdf_report
+from config import config
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
