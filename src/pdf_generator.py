@@ -123,6 +123,99 @@ def _build_summary_table(doc_w, section):
     return data_table
 
 
+FILTER_DEFINITIONS = [
+    ('dateFrom', 'Date From'),
+    ('dateTo', 'Date To'),
+    ('district', 'District'),
+    ('species', 'Species'),
+    ('waterBody', 'Water Body'),
+    ('waterBodyCondition', 'Water Body Condition'),
+    ('weatherCondition', 'Weather Condition'),
+    ('threats', 'Threats'),
+    ('fishingGears', 'Fishing Gears'),
+]
+
+MISSING_VALUE = '-'
+
+
+def _format_date(value):
+    if not value:
+        return MISSING_VALUE
+    try:
+        dt = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        return dt.strftime('%d %B %Y')
+    except (ValueError, AttributeError, TypeError):
+        return str(value)
+
+
+def _format_list_value(values):
+    if not values or not isinstance(values, list):
+        return MISSING_VALUE
+    formatted = [str(item).replace('_', ' ') for item in values if item not in (None, '')]
+    return ', '.join(formatted) if formatted else MISSING_VALUE
+
+
+def _get_filter_value(key, parameters):
+    params = parameters if isinstance(parameters, dict) else {}
+    date_range = params.get('dateRange')
+    if not isinstance(date_range, dict):
+        date_range = {}
+
+    if key == 'dateFrom':
+        return _format_date(date_range.get('from'))
+    if key == 'dateTo':
+        return _format_date(date_range.get('to'))
+
+    list_keys = {
+        'district', 'species', 'waterBody', 'waterBodyCondition',
+        'weatherCondition', 'threats', 'fishingGears',
+    }
+    if key in list_keys:
+        return _format_list_value(params.get(key))
+
+    return MISSING_VALUE
+
+
+def _build_parameters_table(doc_w, parameters, header_style, label_style, value_style):
+    """Build a styled table of report filter parameters."""
+    table_data = [[
+        Paragraph('Filter', header_style),
+        Paragraph('Value', header_style),
+    ]]
+
+    for key, label in FILTER_DEFINITIONS:
+        value = _get_filter_value(key, parameters)
+        table_data.append([
+            Paragraph(label, label_style),
+            Paragraph(value, value_style),
+        ])
+
+    col_widths = [doc_w * 0.34, doc_w * 0.66]
+    param_table = Table(table_data, colWidths=col_widths)
+    param_table.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (-1,  0), C_NAVY),
+        ('TEXTCOLOR',     (0, 0), (-1,  0), C_WHITE),
+        ('FONTNAME',      (0, 0), (-1,  0), 'Helvetica-Bold'),
+        ('FONTSIZE',      (0, 0), (-1,  0), 10),
+        ('TOPPADDING',    (0, 0), (-1,  0), 9),
+        ('BOTTOMPADDING', (0, 0), (-1,  0), 9),
+        ('LEFTPADDING',   (0, 0), (-1,  0), 12),
+        ('RIGHTPADDING',  (0, 0), (-1,  0), 12),
+        ('FONTNAME',      (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE',      (0, 1), (-1, -1), 9.5),
+        ('TOPPADDING',    (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('LEFTPADDING',   (0, 1), (-1, -1), 12),
+        ('RIGHTPADDING',  (0, 1), (-1, -1), 12),
+        ('TEXTCOLOR',     (0, 1), (-1, -1), C_TEXT),
+        ('VALIGN',        (0, 0), (-1, -1), 'TOP'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [C_WHITE, C_ROW_ALT]),
+        ('BOX',           (0, 0), (-1, -1), 0.5, C_BORDER),
+        ('LINEBELOW',     (0, 1), (-1, -1), 0.5, C_BORDER),
+    ]))
+    return param_table
+
+
 def _append_summary_section(story, doc_w, section_heading_style, section):
     """Append a section heading and one or more summary tables to the story."""
     heading_table = Table(
@@ -164,7 +257,8 @@ def _append_summary_section(story, doc_w, section_heading_style, section):
 # Main report builder
 # ---------------------------------------------------------------------------
 
-def create_pdf_report(chart_files, output_path, observations, summary_data=None, report_type='sightings'):
+def create_pdf_report(chart_files, output_path, observations, summary_data=None,
+                      report_type='sightings', parameters=None):
     """Create a PDF report with charts and statistics.
 
     Args:
@@ -173,6 +267,7 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
         observations: List of observation records
         summary_data: Summary data for tables
         report_type: Type of report - 'sightings' or 'reportings'
+        parameters: Filter parameters used to generate the report data
     """
 
     # Validate inputs
@@ -250,6 +345,27 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
         textColor=C_NAVY,
         leading=16,
     )
+    param_label_style = ParagraphStyle(
+        'ParamLabel',
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        textColor=C_TEXT,
+        leading=13,
+    )
+    param_value_style = ParagraphStyle(
+        'ParamValue',
+        fontName='Helvetica',
+        fontSize=9.5,
+        textColor=C_TEXT,
+        leading=13,
+    )
+    param_header_style = ParagraphStyle(
+        'ParamHeader',
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        textColor=C_WHITE,
+        leading=14,
+    )
 
     report_title = 'Reportings Report' if report_type == 'reportings' else 'Sightings Report'
     story = []
@@ -323,6 +439,30 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
         ('RIGHTPADDING',  (0, 0), (-1, -1), 0.2 * inch),
     ]))
     story.append(stats_table)
+
+    story.append(Spacer(1, 0.35 * inch))
+
+    filters_heading = Table(
+        [[Paragraph('Applied Filters', section_heading_style)]],
+        colWidths=[doc_w],
+    )
+    filters_heading.setStyle(TableStyle([
+        ('BACKGROUND',    (0, 0), (0, 0), C_LIGHT),
+        ('LINEBEFORE',    (0, 0), (0, 0), 3.5, C_TEAL),
+        ('TOPPADDING',    (0, 0), (0, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (0, 0), 8),
+        ('LEFTPADDING',   (0, 0), (0, 0), 10),
+        ('RIGHTPADDING',  (0, 0), (0, 0), 10),
+    ]))
+    story.append(filters_heading)
+    story.append(Spacer(1, 0.08 * inch))
+    story.append(_build_parameters_table(
+        doc_w,
+        parameters,
+        param_header_style,
+        param_label_style,
+        param_value_style,
+    ))
 
     story.append(PageBreak())
 

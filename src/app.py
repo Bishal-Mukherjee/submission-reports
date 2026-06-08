@@ -117,12 +117,16 @@ def _generate_report(report_type):
         if not isinstance(data, dict) and not isinstance(data, list):
             return jsonify({'error': 'Data must be a JSON object or array'}), 400
         
-        # Extract the data array - handle both 'data' and 'result' keys
+        # Extract parameters and the data array
+        parameters = None
         if isinstance(data, dict):
+            parameters = data.get('parameters')
             if 'result' in data:
                 observations = data['result']
             elif 'data' in data:
                 observations = data['data']
+            elif 'submissionType' in data or 'parameters' in data:
+                return jsonify({'error': 'No observations found in data'}), 400
             else:
                 observations = [data]
         else:
@@ -156,7 +160,10 @@ def _generate_report(report_type):
         pdf_path = os.path.join(app.config['OUTPUT_FOLDER'], pdf_filename)
         
         try:
-            create_pdf_report(chart_files, pdf_path, observations, summary_data, report_type)
+            create_pdf_report(
+                chart_files, pdf_path, observations, summary_data,
+                report_type, parameters=parameters,
+            )
         except Exception as e:
             return jsonify({'error': f'PDF generation failed: {str(e)}'}), 500
         
