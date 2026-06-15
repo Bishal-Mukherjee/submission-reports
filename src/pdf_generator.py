@@ -126,16 +126,32 @@ def _build_summary_table(doc_w, section):
 FILTER_DEFINITIONS = [
     ('dateFrom', 'Date From'),
     ('dateTo', 'Date To'),
-    ('district', 'District'),
+    ('districts', 'District'),
     ('species', 'Species'),
     ('waterBody', 'Water Body'),
-    ('waterBodyCondition', 'Water Body Condition'),
-    ('weatherCondition', 'Weather Condition'),
+    ('waterBodyConditions', 'Water Body Condition'),
+    ('weatherConditions', 'Weather Condition'),
     ('threats', 'Threats'),
     ('fishingGears', 'Fishing Gears'),
 ]
 
+LIST_PARAM_KEYS = {
+    'districts', 'species', 'waterBody', 'waterBodyConditions',
+    'weatherConditions', 'threats', 'fishingGears',
+}
+
 MISSING_VALUE = '-'
+
+
+def _normalize_list_item(item):
+    if isinstance(item, dict):
+        return (
+            item.get('type')
+            or item.get('name')
+            or item.get('value')
+            or item.get('label')
+        )
+    return item
 
 
 def _format_date(value):
@@ -149,9 +165,21 @@ def _format_date(value):
 
 
 def _format_list_value(values):
-    if not values or not isinstance(values, list):
+    if values is None:
         return MISSING_VALUE
-    formatted = [str(item).replace('_', ' ') for item in values if item not in (None, '')]
+    if isinstance(values, str):
+        values = [part.strip() for part in values.split(',') if part.strip()]
+    elif not isinstance(values, list):
+        return MISSING_VALUE
+    if not values:
+        return MISSING_VALUE
+
+    formatted = []
+    for item in values:
+        normalized = _normalize_list_item(item)
+        if normalized in (None, ''):
+            continue
+        formatted.append(str(normalized).replace('_', ' '))
     return ', '.join(formatted) if formatted else MISSING_VALUE
 
 
@@ -166,11 +194,7 @@ def _get_filter_value(key, parameters):
     if key == 'dateTo':
         return _format_date(date_range.get('to'))
 
-    list_keys = {
-        'district', 'species', 'waterBody', 'waterBodyCondition',
-        'weatherCondition', 'threats', 'fishingGears',
-    }
-    if key in list_keys:
+    if key in LIST_PARAM_KEYS:
         return _format_list_value(params.get(key))
 
     return MISSING_VALUE
