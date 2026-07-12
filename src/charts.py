@@ -9,7 +9,7 @@ import os
 import gc
 
 # ---------------------------------------------------------------------------
-# Chart styling — matches the PDF color palette
+# Chart styling - matches the PDF color palette
 # ---------------------------------------------------------------------------
 PALETTE = ['#2e7d9e', '#3d9a8a', '#5b7fa6', '#6cb2c1', '#4a7eb5', '#2d8a7a', '#7aa3c0']
 PIE_PALETTE = PALETTE + ['#94a3b8', '#64748b', '#475569', '#334155']
@@ -174,18 +174,26 @@ def _collect_species_metrics(observations):
 
 
 def _collect_species_by_dimension(observations, field_keys, fallback_label='Not Recorded'):
-    """Count species animals grouped by an observation-level dimension."""
+    """Count species sightings grouped by an observation-level dimension.
+
+    Each species entry within an observation counts as one sighting, matching
+    the report's total record count rather than summing animal headcounts.
+    """
     grouped = defaultdict(Counter)
 
     for obs in observations:
         raw_value = _get_obs_field(obs, *field_keys)
         values = _normalize_list(raw_value) or [fallback_label]
+        species_list = obs.get('species', [])
 
-        for sp in obs.get('species', []):
-            species_type = sp.get('type', 'Unknown')
-            total = _species_animal_total(sp)
+        if species_list:
+            for sp in species_list:
+                species_type = sp.get('type', 'Unknown')
+                for value in values:
+                    grouped[value][species_type] += 1
+        else:
             for value in values:
-                grouped[value][species_type] += total
+                grouped[value]['Unknown'] += 1
 
     return grouped
 
@@ -508,17 +516,22 @@ def _create_stacked_bar_chart(
             count = grouped_counts[category].get(stack_key, 0)
             if count:
                 share = round(count / total * 100, 1)
-                table_rows.append((f'{_format_label(category)} — {_format_label(stack_key)}', count, share))
+                table_rows.append((f'{_format_label(category)} - {_format_label(stack_key)}', count, share))
 
     return chart_path, table_rows
 
 
 def _district_breakdown_rows(observations):
-    """Build per-district geography rows for the detailed table."""
+    """Build per-district geography rows for the detailed table.
+
+    Returns a tuple of (rows, row_types) where row_types is a list of
+    'detail' or 'total' strings aligned with each row in rows.
+    """
     district_counts = Counter(
         obs.get('district') for obs in observations if obs.get('district')
     )
     rows = []
+    row_types = []
     for district, count in sorted(district_counts.items(), key=lambda item: item[1], reverse=True):
         district_share = round(count / sum(district_counts.values()) * 100, 1)
         block_counts = Counter(
@@ -527,11 +540,13 @@ def _district_breakdown_rows(observations):
             if obs.get('district') == district and obs.get('block')
         )
         if block_counts:
-            for block, block_count in block_counts.most_common(3):
+            for block, block_count in block_counts.most_common():
                 block_share = round(block_count / count * 100, 1)
-                rows.append((f'{district} — {block}', block_count, block_share))
+                rows.append((f'{district} - {block}', block_count, block_share))
+                row_types.append('detail')
         rows.append((district, count, district_share))
-    return rows
+        row_types.append('total')
+    return rows, row_types
 
 
 def generate_charts_for_sightings(observations, output_folder):
@@ -551,10 +566,10 @@ def generate_charts_for_sightings(observations, output_folder):
     try:
         monthly_counts = Counter()
         for obs in observations:
-            observed_at = obs.get('observedAt')
-            if observed_at:
+            submitted_at = _get_obs_field(obs, 'submitted_at', 'submittedAt')
+            if submitted_at:
                 try:
-                    dt = datetime.fromisoformat(observed_at.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(str(submitted_at).replace('Z', '+00:00'))
                     monthly_counts[dt.strftime('%Y-%m')] += 1
                 except (ValueError, AttributeError):
                     continue
@@ -590,7 +605,7 @@ def generate_charts_for_sightings(observations, output_folder):
         plt.close('all')
         print(f"Error generating monthly frequency chart: {str(e)}")
 
-    # 2. Geography — overall district share
+    # 2. Geography - overall district share
     district_counts = Counter(
         obs.get('district') for obs in observations if obs.get('district')
     )
@@ -598,7 +613,7 @@ def generate_charts_for_sightings(observations, output_folder):
         chart_path, rows = _create_pie_chart(
             output_folder,
             'chart_geography_overall.png',
-            'Overall Geography — District Share of Sightings',
+            'Overall Geography - District Share of Sightings',
             district_counts,
         )
         if chart_path:
@@ -606,7 +621,7 @@ def generate_charts_for_sightings(observations, output_folder):
                 chart_files,
                 summary_data,
                 chart_path,
-                'Overall Geography — District Share of Sightings',
+                'Overall Geography - District Share of Sightings',
                 rows,
                 columns=['District', 'Count', 'Share'],
             )
@@ -628,12 +643,13 @@ def generate_charts_for_sightings(observations, output_folder):
                 columns=['District', 'Count', 'Share'],
             )
 
-        district_rows = _district_breakdown_rows(observations)
+        district_rows, district_row_types = _district_breakdown_rows(observations)
         if chart_path and district_rows:
             summary_data[-1]['extra_tables'] = [{
-                'title': 'Geography by District — Block Breakdown',
+                'title': 'Geography by District - Block Breakdown',
                 'columns': ['Location', 'Count', 'Share'],
                 'data': district_rows,
+                'row_types': district_row_types,
             }]
 
     # 3. Block sightings distribution
@@ -757,12 +773,12 @@ def generate_charts_for_sightings(observations, output_folder):
                 count = age_counter.get(age_group, 0)
                 if count:
                     age_summary_rows.append(
-                        (f'{_format_label(species_type)} — {age_group}', count, round(count / total * 100, 1))
+                        (f'{_format_label(species_type)} - {age_group}', count, round(count / total * 100, 1))
                     )
 
         if chart_path and age_summary_rows:
             summary_data[-1]['extra_tables'] = [{
-                'title': 'Species Age Composition — Detailed Share',
+                'title': 'Species Age Composition - Detailed Share',
                 'columns': ['Species and Age Group', 'Count', 'Share'],
                 'data': age_summary_rows,
             }]
@@ -770,7 +786,7 @@ def generate_charts_for_sightings(observations, output_folder):
     # 7. Species sightings by river flow
     species_by_flow = _collect_species_by_dimension(
         observations,
-        ('riverFlow', 'flow', 'flowCondition', 'flowType'),
+        ('waterBodyConditions', 'waterBodyCondition'),
         fallback_label='Not Recorded',
     )
     if species_by_flow and any(species_by_flow.values()):
@@ -1017,10 +1033,10 @@ def generate_charts_for_reportings(observations, output_folder):
     try:
         monthly_counts = Counter()
         for obs in observations:
-            observed_at = obs.get('observedAt')
-            if observed_at:
+            submitted_at = _get_obs_field(obs, 'submitted_at', 'submittedAt')
+            if submitted_at:
                 try:
-                    dt = datetime.fromisoformat(observed_at.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(str(submitted_at).replace('Z', '+00:00'))
                     monthly_counts[dt.strftime('%Y-%m')] += 1
                 except (ValueError, AttributeError):
                     continue
