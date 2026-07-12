@@ -27,7 +27,7 @@ C_WHITE   = colors.white
 # ---------------------------------------------------------------------------
 
 def _draw_first_page(canvas, doc):
-    """Cover page: footer only — main content is rendered via flowables."""
+    """Cover page: footer only - main content is rendered via flowables."""
     w, h = A4
     canvas.saveState()
     canvas.setStrokeColor(C_BORDER)
@@ -78,10 +78,15 @@ def _format_summary_cell(value):
     return str(value)
 
 
+C_TOTAL_BG  = colors.HexColor('#dbeaf5')   # light teal tint for district-total rows
+C_TOTAL_TOP = colors.HexColor('#2e7d9e')   # teal rule above each total row
+
+
 def _build_summary_table(doc_w, section):
     """Build a styled summary table from a section definition."""
     columns = section.get('columns', ['Category', 'Count'])
     rows = section.get('data', [])
+    row_types = section.get('row_types', [])  # list of 'detail' | 'total' per data row
 
     table_data = [columns]
     for row in rows:
@@ -98,8 +103,7 @@ def _build_summary_table(doc_w, section):
     else:
         col_widths = [doc_w * 0.72, doc_w * 0.28]
 
-    data_table = Table(table_data, colWidths=col_widths)
-    data_table.setStyle(TableStyle([
+    base_style = [
         ('BACKGROUND',    (0, 0), (-1,  0), C_NAVY),
         ('TEXTCOLOR',     (0, 0), (-1,  0), C_WHITE),
         ('FONTNAME',      (0, 0), (-1,  0), 'Helvetica-Bold'),
@@ -116,10 +120,32 @@ def _build_summary_table(doc_w, section):
         ('RIGHTPADDING',  (0, 1), (-1, -1), 12),
         ('TEXTCOLOR',     (0, 1), (-1, -1), C_TEXT),
         ('ALIGN',         (1, 0), (-1, -1), 'RIGHT'),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [C_WHITE, C_ROW_ALT]),
         ('BOX',           (0, 0), (-1, -1), 0.5, C_BORDER),
         ('LINEBELOW',     (0, 1), (-1, -1), 0.5, C_BORDER),
-    ]))
+    ]
+
+    # Apply alternating background only to detail rows; total rows get their own styling
+    for i, rtype in enumerate(row_types):
+        table_row = i + 1  # +1 for header
+        if rtype == 'total':
+            base_style.extend([
+                ('BACKGROUND',  (0, table_row), (-1, table_row), C_TOTAL_BG),
+                ('FONTNAME',    (0, table_row), (-1, table_row), 'Helvetica-Bold'),
+                ('LINEABOVE',   (0, table_row), (-1, table_row), 1.5, C_TOTAL_TOP),
+                ('LINEBELOW',   (0, table_row), (-1, table_row), 1.5, C_TOTAL_TOP),
+                ('TEXTCOLOR',   (0, table_row), (-1, table_row), C_NAVY),
+            ])
+        else:
+            # Alternate white / light grey for detail rows
+            bg = C_WHITE if i % 2 == 0 else C_ROW_ALT
+            base_style.append(('BACKGROUND', (0, table_row), (-1, table_row), bg))
+
+    if not row_types:
+        # Fallback: standard alternating backgrounds when no type info
+        base_style.append(('ROWBACKGROUNDS', (0, 1), (-1, -1), [C_WHITE, C_ROW_ALT]))
+
+    data_table = Table(table_data, colWidths=col_widths)
+    data_table.setStyle(TableStyle(base_style))
     return data_table
 
 
@@ -398,7 +424,7 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
     # COVER PAGE
     # =======================================================================
 
-    # Dark header block — title sits inside a NAVY table cell
+    # Dark header block - title sits inside a NAVY table cell
     cover_table = Table(
         [
             [Paragraph(report_title, cover_title_style)],
@@ -491,7 +517,7 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
     story.append(PageBreak())
 
     # =======================================================================
-    # CONTENT PAGES — one chart + table per page
+    # CONTENT PAGES - one chart + table per page
     # =======================================================================
     for i, chart_file in enumerate(chart_files):
         chart_name = os.path.basename(chart_file).lower()
