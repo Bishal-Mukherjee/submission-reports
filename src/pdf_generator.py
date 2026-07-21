@@ -2,18 +2,20 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
 from datetime import datetime
 from functools import partial
 import os
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+COVER_IMAGE_PATH = os.path.join(PROJECT_ROOT, 'assets', 'report_cover.jpg')
 
 # ---------------------------------------------------------------------------
 # Color palette
 # ---------------------------------------------------------------------------
 C_NAVY    = colors.HexColor('#1a3a5c')
 C_TEAL    = colors.HexColor('#2e7d9e')
-C_SKY     = colors.HexColor('#a8c5da')
 C_LIGHT   = colors.HexColor('#dbeaf5')
 C_TEXT    = colors.HexColor('#1a202c')
 C_MUTED   = colors.HexColor('#718096')
@@ -27,33 +29,32 @@ C_WHITE   = colors.white
 # ---------------------------------------------------------------------------
 
 def _draw_first_page(canvas, doc):
-    """Cover page: footer only - main content is rendered via flowables."""
+    """Cover page: full-bleed cover image."""
     w, h = A4
     canvas.saveState()
-    canvas.setStrokeColor(C_BORDER)
-    canvas.setLineWidth(0.5)
-    canvas.line(0.75 * inch, 0.58 * inch, w - 0.75 * inch, 0.58 * inch)
-    canvas.setFont('Helvetica', 8)
-    canvas.setFillColor(C_MUTED)
-    canvas.drawCentredString(w / 2, 0.38 * inch,
-                             f'Generated on {datetime.now().strftime("%d %B %Y")}')
+    if os.path.exists(COVER_IMAGE_PATH):
+        canvas.drawImage(COVER_IMAGE_PATH, 0, 0, width=w, height=h)
     canvas.restoreState()
 
 
 def _draw_later_pages(canvas, doc, report_title):
-    """Content pages: slim navy header bar + footer rule."""
+    """Content pages: slim navy header bar + footer rule.
+
+    Page 2 (overview) keeps footer only, matching the former cover chrome.
+    """
     w, h = A4
     canvas.saveState()
 
-    # Header bar
-    canvas.setFillColor(C_NAVY)
-    canvas.rect(0, h - 0.42 * inch, w, 0.42 * inch, fill=1, stroke=0)
+    if doc.page > 2:
+        # Header bar
+        canvas.setFillColor(C_NAVY)
+        canvas.rect(0, h - 0.42 * inch, w, 0.42 * inch, fill=1, stroke=0)
 
-    # Header text
-    canvas.setFont('Helvetica', 8.5)
-    canvas.setFillColor(C_WHITE)
-    canvas.drawString(0.75 * inch, h - 0.28 * inch, report_title)
-    canvas.drawRightString(w - 0.75 * inch, h - 0.28 * inch, f'Page {doc.page}')
+        # Header text
+        canvas.setFont('Helvetica', 8.5)
+        canvas.setFillColor(C_WHITE)
+        canvas.drawString(0.75 * inch, h - 0.28 * inch, report_title)
+        canvas.drawRightString(w - 0.75 * inch, h - 0.28 * inch, f'Page {doc.page}')
 
     # Footer rule + text
     canvas.setStrokeColor(C_BORDER)
@@ -166,7 +167,7 @@ LIST_PARAM_KEYS = {
     'weatherConditions', 'threats', 'fishingGears',
 }
 
-MISSING_VALUE = '-'
+MISSING_VALUE = 'All'
 
 
 def _normalize_list_item(item):
@@ -355,22 +356,6 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
     # -----------------------------------------------------------------------
     # Paragraph styles
     # -----------------------------------------------------------------------
-    cover_title_style = ParagraphStyle(
-        'CoverTitle',
-        fontName='Helvetica-Bold',
-        fontSize=30,
-        textColor=C_WHITE,
-        alignment=TA_CENTER,
-        leading=38,
-    )
-    cover_sub_style = ParagraphStyle(
-        'CoverSub',
-        fontName='Helvetica',
-        fontSize=13,
-        textColor=C_SKY,
-        alignment=TA_CENTER,
-        leading=20,
-    )
     stat_label_style = ParagraphStyle(
         'StatLabel',
         fontName='Helvetica-Bold',
@@ -421,36 +406,13 @@ def create_pdf_report(chart_files, output_path, observations, summary_data=None,
     story = []
 
     # =======================================================================
-    # COVER PAGE
+    # COVER PAGE - full-bleed image drawn via onFirstPage callback
     # =======================================================================
+    story.append(PageBreak())
 
-    # Dark header block - title sits inside a NAVY table cell
-    cover_table = Table(
-        [
-            [Paragraph(report_title, cover_title_style)],
-            [Paragraph('Data Analysis Report', cover_sub_style)],
-        ],
-        colWidths=[doc_w],
-    )
-    cover_table.setStyle(TableStyle([
-        ('BACKGROUND',    (0, 0), (-1, -1), C_NAVY),
-        ('TOPPADDING',    (0, 0), (0,  0),  0.85 * inch),
-        ('BOTTOMPADDING', (0, 0), (0,  0),  0.12 * inch),
-        ('TOPPADDING',    (0, 1), (0,  1),  0),
-        ('BOTTOMPADDING', (0, 1), (0,  1),  0.85 * inch),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 0.5 * inch),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 0.5 * inch),
-        ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    story.append(cover_table)
-
-    # Teal accent strip below the dark header block
-    accent = Table([['']], colWidths=[doc_w], rowHeights=[0.06 * inch])
-    accent.setStyle(TableStyle([('BACKGROUND', (0, 0), (0, 0), C_TEAL)]))
-    story.append(accent)
-
-    story.append(Spacer(1, 0.45 * inch))
+    # =======================================================================
+    # OVERVIEW PAGE - stats + applied filters
+    # =======================================================================
 
     # Two-column stats card
     col_w = (doc_w - 0.1 * inch) / 2
