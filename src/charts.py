@@ -98,20 +98,24 @@ def _counts_to_rows(counts, include_share=True):
     """Convert a Counter-like mapping to sorted table rows."""
     total = sum(counts.values())
     rows = sorted(counts.items(), key=lambda item: item[1], reverse=True)
-    if not include_share or total == 0:
-        return [(label, count) for label, count in rows]
-    return [
-        (label, count, round(count / total * 100, 1))
-        for label, count in rows
-    ]
+    # Share column disabled for all report tables — keep Count only.
+    # if not include_share or total == 0:
+    #     return [(label, count) for label, count in rows]
+    # return [
+    #     (label, count, round(count / total * 100, 1))
+    #     for label, count in rows
+    # ]
+    return [(label, count) for label, count in rows]
 
 
 def _share_rows(rows):
     """Attach share values to (label, count) rows."""
-    total = sum(row[1] for row in rows)
-    if total == 0:
-        return [(label, count, 0.0) for label, count in rows]
-    return [(label, count, round(count / total * 100, 1)) for label, count in rows]
+    # Share column disabled for all report tables — keep Count only.
+    # total = sum(row[1] for row in rows)
+    # if total == 0:
+    #     return [(label, count, 0.0) for label, count in rows]
+    # return [(label, count, round(count / total * 100, 1)) for label, count in rows]
+    return [(label, count) for label, count in rows]
 
 
 def _limit_pie_slices(counts, max_slices=8):
@@ -265,7 +269,9 @@ def _append_summary(chart_files, summary_data, chart_path, title, rows, columns=
     chart_files.append(chart_path)
     summary_data.append({
         'title': title,
-        'columns': columns or ['Category', 'Count', 'Share'],
+        # Share column disabled for all report tables.
+        # 'columns': columns or ['Category', 'Count', 'Share'],
+        'columns': columns or ['Category', 'Count'],
         'data': rows,
     })
 
@@ -277,7 +283,8 @@ def _create_bar_chart(
     counts,
     xlabel,
     ylabel='Number of Sightings',
-    include_share=True,
+    # include_share=True,  # Share column disabled for all report tables.
+    include_share=False,
 ):
     if not counts:
         return None, None
@@ -515,8 +522,10 @@ def _create_stacked_bar_chart(
         for stack_key in stack_keys:
             count = grouped_counts[category].get(stack_key, 0)
             if count:
-                share = round(count / total * 100, 1)
-                table_rows.append((f'{_format_label(category)} - {_format_label(stack_key)}', count, share))
+                # Share column disabled for all report tables.
+                # share = round(count / total * 100, 1)
+                # table_rows.append((f'{_format_label(category)} - {_format_label(stack_key)}', count, share))
+                table_rows.append((f'{_format_label(category)} - {_format_label(stack_key)}', count))
 
     return chart_path, table_rows
 
@@ -533,7 +542,8 @@ def _district_breakdown_rows(observations):
     rows = []
     row_types = []
     for district, count in sorted(district_counts.items(), key=lambda item: item[1], reverse=True):
-        district_share = round(count / sum(district_counts.values()) * 100, 1)
+        # Share column disabled for all report tables.
+        # district_share = round(count / sum(district_counts.values()) * 100, 1)
         block_counts = Counter(
             obs.get('block')
             for obs in observations
@@ -541,10 +551,13 @@ def _district_breakdown_rows(observations):
         )
         if block_counts:
             for block, block_count in block_counts.most_common():
-                block_share = round(block_count / count * 100, 1)
-                rows.append((f'{district} - {block}', block_count, block_share))
+                # Share column disabled for all report tables.
+                # block_share = round(block_count / count * 100, 1)
+                # rows.append((f'{district} - {block}', block_count, block_share))
+                rows.append((f'{district} - {block}', block_count))
                 row_types.append('detail')
-        rows.append((district, count, district_share))
+        # rows.append((district, count, district_share))  # Share column disabled
+        rows.append((district, count))
         row_types.append('total')
     return rows, row_types
 
@@ -623,7 +636,9 @@ def generate_charts_for_sightings(observations, output_folder):
                 chart_path,
                 'Overall Geography - District Share of Sightings',
                 rows,
-                columns=['District', 'Count', 'Share'],
+                # Share column disabled for this section.
+                # columns=['District', 'Count', 'Share'],
+                columns=['District', 'Count'],
             )
 
         chart_path, rows = _create_bar_chart(
@@ -640,14 +655,18 @@ def generate_charts_for_sightings(observations, output_folder):
                 chart_path,
                 'District Sightings Distribution',
                 rows,
-                columns=['District', 'Count', 'Share'],
+                # Share column disabled for this section.
+                # columns=['District', 'Count', 'Share'],
+                columns=['District', 'Count'],
             )
 
         district_rows, district_row_types = _district_breakdown_rows(observations)
         if chart_path and district_rows:
             summary_data[-1]['extra_tables'] = [{
                 'title': 'Geography by District - Block Breakdown',
-                'columns': ['Location', 'Count', 'Share'],
+                # Share column disabled for this section.
+                # 'columns': ['Location', 'Count', 'Share'],
+                'columns': ['Location', 'Count'],
                 'data': district_rows,
                 'row_types': district_row_types,
             }]
@@ -669,7 +688,9 @@ def generate_charts_for_sightings(observations, output_folder):
                 chart_path,
                 'Block Sightings Distribution',
                 rows,
-                columns=['Block', 'Count', 'Share'],
+                # Share column disabled for this section.
+                # columns=['Block', 'Count', 'Share'],
+                columns=['Block', 'Count'],
             )
 
     # 4. Site, ghat, and village sightings distribution
@@ -689,7 +710,9 @@ def generate_charts_for_sightings(observations, output_folder):
                 chart_path,
                 'Site, Ghat and Village Sightings Distribution',
                 rows,
-                columns=['Location', 'Count', 'Share'],
+                # Share column disabled for this section.
+                # columns=['Location', 'Count', 'Share'],
+                columns=['Location', 'Count'],
             )
 
         chart_path, rows = _create_pie_chart(
@@ -705,7 +728,9 @@ def generate_charts_for_sightings(observations, output_folder):
                 chart_path,
                 'Site, Ghat and Village Share of Sightings',
                 rows,
-                columns=['Location', 'Count', 'Share'],
+                # Share column disabled for this section.
+                # columns=['Location', 'Count', 'Share'],
+                columns=['Location', 'Count'],
             )
 
     # 5. Species sightings share (overall)
@@ -768,18 +793,25 @@ def generate_charts_for_sightings(observations, output_folder):
             key=lambda item: sum(item[1].values()),
             reverse=True,
         ):
-            total = sum(age_counter.values())
+            # total used only by disabled Share calculation below.
+            # total = sum(age_counter.values())
             for age_group in AGE_GROUP_KEYS:
                 count = age_counter.get(age_group, 0)
                 if count:
+                    # Share column disabled for this section.
+                    # age_summary_rows.append(
+                    #     (f'{_format_label(species_type)} - {age_group}', count, round(count / total * 100, 1))
+                    # )
                     age_summary_rows.append(
-                        (f'{_format_label(species_type)} - {age_group}', count, round(count / total * 100, 1))
+                        (f'{_format_label(species_type)} - {age_group}', count)
                     )
 
         if chart_path and age_summary_rows:
             summary_data[-1]['extra_tables'] = [{
                 'title': 'Species Age Composition - Detailed Share',
-                'columns': ['Species and Age Group', 'Count', 'Share'],
+                # Share column disabled for this section.
+                # 'columns': ['Species and Age Group', 'Count', 'Share'],
+                'columns': ['Species and Age Group', 'Count'],
                 'data': age_summary_rows,
             }]
 
